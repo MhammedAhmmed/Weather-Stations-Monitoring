@@ -20,7 +20,7 @@ public class Store {
     Store constructor: creates an instance of Store from the filePath.
     It creates 2 file pointers: one for writing and other for reading.
      */
-    Store(String filePath){
+    public Store(String filePath){
         try {
             this.writer = new RandomAccessFile(filePath, "rws");
             this.reader = new RandomAccessFile(filePath, "r");
