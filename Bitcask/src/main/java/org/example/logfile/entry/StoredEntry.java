@@ -1,4 +1,4 @@
-package org.example.logfile;
+package org.example.logfile.entry;
 
 public class StoredEntry {
     byte[] key;

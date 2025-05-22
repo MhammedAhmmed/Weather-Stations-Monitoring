@@ -1,7 +1,5 @@
-package org.example.logfile;
+package org.example.logfile.entry;
 
-import org.example.clock.Clock;
-import org.example.clock.SystemClock;
 import org.example.config.BitCaskKey;
 
 import java.nio.ByteBuffer;
@@ -9,41 +7,9 @@ import java.nio.ByteOrder;
 import java.util.Arrays;
 
 import static org.example.config.EntryEncodingConstants.*;
+import static org.example.config.EntryEncodingConstants.RESERVED_VALUE_SIZE;
 
-/**
- * Entry: represents the record that will be written or read into the log file
- */
-public class Entry <K extends BitCaskKey> {
-    K key;
-    byte[] value;
-    long timeStamp;
-    Clock clock;
-
-    /**
-     * Entry constructor: creates new entry as it will be written
-     * @param key
-     * @param value
-     */
-    public Entry(K key, byte[] value) {
-        this.key = key;
-        this.value = value;
-        this.timeStamp = 0;
-        this.clock = new SystemClock();
-    }
-
-    /**
-     * Entry constructor: creates new entry as it was already written (for read)
-     * @param key
-     * @param value
-     * @param timeStamp
-     */
-    public Entry(K key, byte[] value, long timeStamp) {
-        this.key = key;
-        this.value = value;
-        this.timeStamp = timeStamp;
-        this.clock = new SystemClock();
-    }
-
+public class EntryCodec<K extends BitCaskKey>{
     /**
      * ┌───────────┬──────────┬────────────┬─────┬───────┐
      * │ timestamp │ key_size │ value_size │ key │ value │
@@ -53,25 +19,23 @@ public class Entry <K extends BitCaskKey> {
      * key, value based on their actual size that is stored in key_size and value_size
      * @return
      */
-    public byte[] encode() {
-        byte[] serializedKey = this.key.serialize();
-        byte[] value = this.value;
+    public byte[] encode(Entry<K> entry) {
+        byte[] serializedKey = entry.getKey().serialize();;
+        byte[] value = entry.getValue();
         int keySize = serializedKey.length;
-        int valueSize = this.value.length;
+        int valueSize = entry.getValue().length;
 
         int encodedSize =
                 RESERVED_TIMESTAMP_SIZE +
-                RESERVED_KEY_SIZE +
-                RESERVED_VALUE_SIZE +
-                keySize +
-                valueSize;
+                        RESERVED_KEY_SIZE +
+                        RESERVED_VALUE_SIZE +
+                        keySize +
+                        valueSize;
         ByteBuffer encoded = ByteBuffer.allocate(encodedSize);
         encoded.order(ByteOrder.LITTLE_ENDIAN);
 
         // 1. Timestamp
-        long timestamp = this.timeStamp == 0
-                ? this.clock.now()
-                : this.timeStamp;
+        long timestamp = entry.getTimeStamp();
         encoded.putLong(timestamp);
 
         // 2. Key size
@@ -89,7 +53,22 @@ public class Entry <K extends BitCaskKey> {
         return encoded.array();
     }
 
+    /**
+     * ┌───────────┬──────────┬────────────┬─────┬───────┐
+     * │ timestamp │ key_size │ value_size │ key │ value │
+     * └───────────┴──────────┴────────────┴─────┴───────┘
+     * decodeFrom: decodes from given offset as
+     * the code reads the first 8_bytes to get the timestamp,
+     * next 4_bytes to get the key size, next 4_bytes to get the value size
+     * Reading further from the offset to the offset+keySize return the actual key,
+     * followed by next read from offset to offset+valueSize which returns the actual value.
+     * @param content
+     * @param offset
+     * @return
+     */
     public StoredEntry decodeFrom(byte[] content, int offset) {
+        System.out.println("Offset before decoding: " + offset);
+
         ByteBuffer buffer = ByteBuffer.wrap(content);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
 
@@ -97,7 +76,7 @@ public class Entry <K extends BitCaskKey> {
         buffer.position(offset);
 
         // 1. Read timestamp
-        long timestamp = buffer.getLong();
+        long timeStamp = buffer.getLong();
         offset += RESERVED_TIMESTAMP_SIZE;
 
         // 2. Read key size
@@ -115,6 +94,8 @@ public class Entry <K extends BitCaskKey> {
         // 5. Read value
         byte[] value = Arrays.copyOfRange(content, offset, offset + valueSize);
         offset += valueSize;
+
+        System.out.println("Offset after decoding: " + offset);
 
         return new StoredEntry(serializedKey, value, timeStamp);
     }
