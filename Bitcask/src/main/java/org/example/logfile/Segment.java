@@ -6,8 +6,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
-Segment: is segment file that stores list of entries
-and accessed by its store
+ * Segment: is segment file that stores list of entries
+ * and accessed by its store
  */
 public class Segment {
     long fileId;
@@ -18,20 +18,24 @@ public class Segment {
     private final String segmentFileSuffix = "data";
 
     /**
-    Segment constructor: creates a new segment with its identifier and its store
+     * Segment constructor: creates a new segment with its identifier and its store
+     * @param fileId
+     * @param directory
      */
-    Segment(long fileId, String directory) {
+    public Segment(long fileId, String directory) {
         this.filePath = createSegment(fileId, directory);
         this.fileId = fileId;
         this.store = new Store(this.filePath);
     }
 
 
-
     /**
-     createSegment: creates a new file
+     * createSegment: creates a new file
+     * @param fileId
+     * @param directory
+     * @return
      */
-    String createSegment(long fileId, String directory) {
+    public String createSegment(long fileId, String directory) {
         String filePath = segmentName(fileId, directory);
         try {
             Files.createFile(Path.of(filePath));
@@ -43,9 +47,12 @@ public class Segment {
     }
 
     /**
-    segmentName: constructs the file path with file name (fileId, 'log', 'data')
+     * segmentName: constructs the file path with file name (fileId, 'log', 'data')
+     * @param fileId
+     * @param directory
+     * @return
      */
-    String segmentName(long fileId, String directory) {
+    public String segmentName(long fileId, String directory) {
         return directory + "/" +  fileId + "_" + segmentFilePrefix + "." + segmentFileSuffix;
     }
 }

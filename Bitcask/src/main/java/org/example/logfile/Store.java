@@ -8,7 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
-Store: class that has two file pointers one for read and one for write
+ * Store: class that has two file pointers one for read and one for write
  */
 public class Store {
     RandomAccessFile writer;
@@ -17,8 +17,9 @@ public class Store {
     String filePath;
 
     /**
-    Store constructor: creates an instance of Store from the filePath.
-    It creates 2 file pointers: one for writing and other for reading.
+     * Store constructor: creates an instance of Store from the filePath.
+     * It creates 2 file pointers: one for writing and other for reading.
+     * @param filePath
      */
     public Store(String filePath){
         try {
@@ -32,9 +33,11 @@ public class Store {
     }
 
     /**
-    append: appends byte[] at the currentWriteOffset and return the offset
+     * append: appends byte[] at the currentWriteOffset and return the offset
+     * @param bytes
+     * @return
      */
-    long append(byte[] bytes) {
+   public long append(byte[] bytes) {
         long offset = this.currentWriterOffset;
         try {
             this.writer.write(bytes);
@@ -48,9 +51,12 @@ public class Store {
     }
 
     /**
-    read: reads byte[] from some given offset with known size of readable bytes
+     * read: reads byte[] from some given offset with known size of readable bytes
+     * @param offset
+     * @param size
+     * @return
      */
-    byte[] read(long offset, int size) {
+    public byte[] read(long offset, int size) {
         byte[] bytes = null;
         try {
             this.reader.seek(offset);
@@ -64,9 +70,10 @@ public class Store {
     }
 
     /**
-    readFull: reads all the file and return byte[]
+     * readFull: reads all the file and return byte[]
+     * @return
      */
-    byte[] readFull() {
+    public byte[] readFull() {
         try {
             return Files.readAllBytes(Path.of(this.filePath));
         } catch (IOException e) {
@@ -75,18 +82,19 @@ public class Store {
     }
 
     /**
-    sizeInBytes: return size of the file which is the currentWriterOffset
+     * sizeInBytes: return size of the file which is the currentWriterOffset
+     * @return
      */
-    long sizeInBytes () {
+    public long sizeInBytes () {
         return this.currentWriterOffset;
     }
 
     /**
-    sync: manually sync write to the disk to ensures that
-    all the disk blocks (or pages) at the Kernel page cache are flushed to the disk
-    as can be replaced by setting writer to 'rws' mode
+     * sync: manually sync write to the disk to ensures that
+     * all the disk blocks (or pages) at the Kernel page cache are flushed to the disk
+     * as can be replaced by setting writer to 'rws' mode
      */
-    void sync() {
+    public void sync() {
         try {
             this.writer.getFD().sync();
         } catch (IOException e) {
@@ -95,10 +103,10 @@ public class Store {
     }
 
     /**
-    stopWriter: close the writer file pointer
-    As this method called when the file segment exceeds its maximum size
+     * stopWriter: close the writer file pointer
+     * As this method called when the file segment exceeds its maximum size
      */
-    void stopWriter() {
+    public void stopWriter() {
         try {
             this.writer.close();
         } catch (IOException e) {
@@ -107,9 +115,9 @@ public class Store {
     }
 
     /**
-    remove: removes the file
+     * remove: removes the file
      */
-    void remove() {
+    public void remove() {
         File file = new File(this.filePath);
         if (file.delete()) {
             System.out.println("File deleted successfully.");
