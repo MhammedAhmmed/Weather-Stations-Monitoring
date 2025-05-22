@@ -4,12 +4,6 @@ import org.example.clock.Clock;
 import org.example.clock.SystemClock;
 import org.example.config.BitCaskKey;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.Arrays;
-
-import static org.example.config.EntryEncodingConstants.*;
-
 /**
  * Entry: represents the record that will be written or read into the log file
  */

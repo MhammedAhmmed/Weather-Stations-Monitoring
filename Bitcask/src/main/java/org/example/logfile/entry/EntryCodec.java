@@ -9,6 +9,12 @@ import java.util.Arrays;
 import static org.example.config.EntryEncodingConstants.*;
 import static org.example.config.EntryEncodingConstants.RESERVED_VALUE_SIZE;
 
+
+/**
+ * EntryCodec: represents the main logic for encoding and decoding
+ * for the entries in the file
+ * @param <K>
+ */
 public class EntryCodec<K extends BitCaskKey>{
     /**
      * ┌───────────┬──────────┬────────────┬─────┬───────┐
@@ -52,6 +58,18 @@ public class EntryCodec<K extends BitCaskKey>{
 
         return encoded.array();
     }
+
+    /**
+     * decode: decodes the entry from offset 0
+     * @param content
+     * @return
+     */
+    public StoredEntry decode(byte[] content) {
+        int offset = 0;
+        StoredEntry storedEntry = decodeFrom(content, offset);
+        return storedEntry;
+    }
+    
 
     /**
      * ┌───────────┬──────────┬────────────┬─────┬───────┐
