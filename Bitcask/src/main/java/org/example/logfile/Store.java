@@ -7,7 +7,7 @@ import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/*
+/**
 Store: class that has two file pointers one for read and one for write
  */
 public class Store {
@@ -16,7 +16,7 @@ public class Store {
     long currentWriterOffset;
     String filePath;
 
-    /*
+    /**
     Store constructor: creates an instance of Store from the filePath.
     It creates 2 file pointers: one for writing and other for reading.
      */
@@ -31,7 +31,7 @@ public class Store {
         this.filePath = filePath;
     }
 
-    /*
+    /**
     append: appends byte[] at the currentWriteOffset and return the offset
      */
     long append(byte[] bytes) {
@@ -47,7 +47,7 @@ public class Store {
         return offset;
     }
 
-    /*
+    /**
     read: reads byte[] from some given offset with known size of readable bytes
      */
     byte[] read(long offset, int size) {
@@ -63,7 +63,7 @@ public class Store {
         return bytes;
     }
 
-    /*
+    /**
     readFull: reads all the file and return byte[]
      */
     byte[] readFull() {
@@ -74,14 +74,14 @@ public class Store {
         }
     }
 
-    /*
+    /**
     sizeInBytes: return size of the file which is the currentWriterOffset
      */
     long sizeInBytes () {
         return this.currentWriterOffset;
     }
 
-    /*
+    /**
     sync: manually sync write to the disk to ensures that
     all the disk blocks (or pages) at the Kernel page cache are flushed to the disk
     as can be replaced by setting writer to 'rws' mode
@@ -94,7 +94,7 @@ public class Store {
         }
     }
 
-    /*
+    /**
     stopWriter: close the writer file pointer
     As this method called when the file segment exceeds its maximum size
      */
@@ -106,7 +106,7 @@ public class Store {
         }
     }
 
-    /*
+    /**
     remove: removes the file
      */
     void remove() {

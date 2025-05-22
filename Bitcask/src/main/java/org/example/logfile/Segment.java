@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/*
+/**
 Segment: is segment file that stores list of entries
 and accessed by its store
  */
@@ -17,7 +17,7 @@ public class Segment {
     private final String segmentFilePrefix = "log";
     private final String segmentFileSuffix = "data";
 
-    /*
+    /**
     Segment constructor: creates a new segment with its identifier and its store
      */
     Segment(long fileId, String directory) {
@@ -26,11 +26,11 @@ public class Segment {
         this.store = new Store(this.filePath);
     }
 
-    
 
-    /*
-        createSegment: creates a new file
-         */
+
+    /**
+     createSegment: creates a new file
+     */
     String createSegment(long fileId, String directory) {
         String filePath = segmentName(fileId, directory);
         try {
@@ -42,7 +42,7 @@ public class Segment {
         return filePath;
     }
 
-    /*
+    /**
     segmentName: constructs the file path with file name (fileId, 'log', 'data')
      */
     String segmentName(long fileId, String directory) {
