@@ -3,10 +3,16 @@ package org.example.logfile.segment;
 import org.example.config.BitCaskKey;
 import org.example.logfile.Store;
 import org.example.logfile.entry.Entry;
+import org.example.logfile.entry.MappedStoredEntry;
+import org.example.logfile.entry.StoredEntry;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.function.Function;
+
+import static org.example.logfile.entry.EntryCodec.*;
 
 /**
  * Segment: is segment file that stores list of entries
@@ -31,6 +37,67 @@ public class Segment <K extends BitCaskKey> {
         this.store = new Store(this.filePath);
     }
 
+    /**
+     * append: appends entry into segment file as
+     * 1) encode the entry
+     * 2) write encoded entry
+     * @param entry
+     * @return
+     */
+    public AppendedEntryResponse append(Entry<K> entry) {
+        byte[] encoded = encode(entry);
+        long offset = this.store.append(encoded);
+
+        return new AppendedEntryResponse(this.fileId, offset, encoded.length);
+    }
+
+    /**
+     * read: read performs a read operation from the offset in the segment file.
+     * @param offset
+     * @param size
+     * @return
+     */
+    public StoredEntry read (long offset, int size) {
+        byte[] bytes = this.store.read(offset, size);
+
+        StoredEntry storedEntry = decode(bytes);
+        return storedEntry;
+    }
+
+    /**
+     * readFull: performs a full read of the segment file
+     * @param keyMapper
+     * @return
+     */
+    public List<MappedStoredEntry<K>> readFull(Function<byte[], K> keyMapper) {
+        byte[] bytes = this.store.readFull();
+
+        List<MappedStoredEntry<K>> mappedStoredEntries = decodeMulti(bytes, keyMapper);
+        return mappedStoredEntries;
+    }
+
+    /**
+     * sizeInBytes: returns size of the segment in bytes
+     * @return
+     */
+    public long sizeInBytes() {
+        return this.store.sizeInBytes();
+    }
+
+    /**
+     * stopWrite: closes writer pointer in segment file when it reaches the threshold
+     */
+    public void stopWrite() {
+        this.store.stopWrite();
+    }
+
+    /**
+     * remove: removes the segment file as
+     * this method is called after merging
+     */
+    public void remove() {
+        this.store.remove();
+    }
 
     /**
      * createSegment: creates a new file
@@ -49,20 +116,6 @@ public class Segment <K extends BitCaskKey> {
         return filePath;
     }
 
-    /**
-     * append: appends entry into segment file as
-     * 1) encode the entry
-     * 2) write encoded entry
-     * @param entry
-     * @return
-     */
-    public AppendedEntryResponse append(Entry<K> entry) {
-        byte[] encded = entry.encode();
-        long offset = this.store.append(encded);
-
-        return new AppendedEntryResponse(this.fileId, offset, encded.length);
-    }
-    
     /**
      * segmentName: constructs the file path with file name (fileId, 'log', 'data')
      * @param fileId

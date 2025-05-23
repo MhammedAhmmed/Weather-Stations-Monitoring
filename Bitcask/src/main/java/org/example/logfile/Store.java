@@ -106,7 +106,7 @@ public class Store {
      * stopWriter: close the writer file pointer
      * As this method called when the file segment exceeds its maximum size
      */
-    public void stopWriter() {
+    public void stopWrite() {
         try {
             this.writer.close();
         } catch (IOException e) {
