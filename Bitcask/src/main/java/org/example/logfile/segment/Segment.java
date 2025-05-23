@@ -1,6 +1,9 @@
-package org.example.logfile;
+package org.example.logfile.segment;
 
-import java.io.File;
+import org.example.config.BitCaskKey;
+import org.example.logfile.Store;
+import org.example.logfile.entry.Entry;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -9,7 +12,7 @@ import java.nio.file.Path;
  * Segment: is segment file that stores list of entries
  * and accessed by its store
  */
-public class Segment {
+public class Segment <K extends BitCaskKey> {
     long fileId;
     String filePath;
     Store store;
@@ -46,6 +49,20 @@ public class Segment {
         return filePath;
     }
 
+    /**
+     * append: appends entry into segment file as
+     * 1) encode the entry
+     * 2) write encoded entry
+     * @param entry
+     * @return
+     */
+    public AppendedEntryResponse append(Entry<K> entry) {
+        byte[] encded = entry.encode();
+        long offset = this.store.append(encded);
+
+        return new AppendedEntryResponse(this.fileId, offset, encded.length);
+    }
+    
     /**
      * segmentName: constructs the file path with file name (fileId, 'log', 'data')
      * @param fileId
