@@ -1,9 +1,9 @@
 package org.example.logfile.entry;
 
 public class StoredEntry {
-    byte[] key;
-    byte[] value;
-    long timeStamp;
+    private byte[] key;
+    private byte[] value;
+    private long timeStamp;
 
     public StoredEntry(byte[] key, byte[] value, long timeStamp) {
         this.key = key;

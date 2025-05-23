@@ -4,7 +4,10 @@ import org.example.config.BitCaskKey;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.function.Function;
 
 import static org.example.config.EntryEncodingConstants.*;
 import static org.example.config.EntryEncodingConstants.RESERVED_VALUE_SIZE;
@@ -66,8 +69,38 @@ public class EntryCodec<K extends BitCaskKey>{
      */
     public StoredEntry decode(byte[] content) {
         int offset = 0;
-        StoredEntry storedEntry = decodeFrom(content, offset);
-        return storedEntry;
+        DecodedEntry decodedEntry = decodeFrom(content, offset);
+        return decodedEntry.getEntry();
+    }
+
+    /**
+     * decodeMulti: performs multiple decode operations and returns an array of MappedStoredEntry
+     * used when a segment file needs to be read completely.
+     * This happens during reload and merge operations
+     * @param content
+     * @return
+     */
+    public List<MappedStoredEntry<K>> decodeMulti(byte[] content, Function<byte[], K> keyMapper) {
+        int contentLength = content.length;
+        int offset = 0;
+
+        List<MappedStoredEntry<K>> mappedStoredEntries = new ArrayList<>();
+
+        while (offset < contentLength) {
+            DecodedEntry decodedEntry = decodeFrom(content, offset);
+            MappedStoredEntry<K> mappedStoredEntry =
+                    new MappedStoredEntry<>(
+                            keyMapper.apply(decodedEntry.getEntry().getKey()),
+                            decodedEntry.getEntry().getValue(),
+                            decodedEntry.getEntry().getTimeStamp(),
+                            offset,
+                            decodedEntry.getOffset()
+                            );
+            mappedStoredEntries.add(mappedStoredEntry);
+            offset += decodedEntry.getOffset();
+        }
+
+        return mappedStoredEntries;
     }
     
 
@@ -84,9 +117,7 @@ public class EntryCodec<K extends BitCaskKey>{
      * @param offset
      * @return
      */
-    public StoredEntry decodeFrom(byte[] content, int offset) {
-        System.out.println("Offset before decoding: " + offset);
-
+    public DecodedEntry decodeFrom(byte[] content, int offset) {
         ByteBuffer buffer = ByteBuffer.wrap(content);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
 
@@ -113,8 +144,9 @@ public class EntryCodec<K extends BitCaskKey>{
         byte[] value = Arrays.copyOfRange(content, offset, offset + valueSize);
         offset += valueSize;
 
-        System.out.println("Offset after decoding: " + offset);
+        StoredEntry storedEntry = new StoredEntry(serializedKey, value, timeStamp);
+        DecodedEntry decodedEntry = new DecodedEntry(storedEntry, offset);
 
-        return new StoredEntry(serializedKey, value, timeStamp);
+        return decodedEntry;
     }
 }
