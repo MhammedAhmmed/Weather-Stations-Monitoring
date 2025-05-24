@@ -99,6 +99,8 @@ public class Segment <K extends BitCaskKey> {
     public List<MappedStoredEntry<K>> readFull(Function<byte[], K> keyMapper) {
         byte[] bytes = this.store.readFull();
 
+        System.out.println("Size of file after read: " + bytes.length);
+
         List<MappedStoredEntry<K>> mappedStoredEntries = decodeMulti(bytes, keyMapper);
         return mappedStoredEntries;
     }

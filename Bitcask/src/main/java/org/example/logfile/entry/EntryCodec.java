@@ -43,21 +43,33 @@ public final class EntryCodec{
         ByteBuffer encoded = ByteBuffer.allocate(encodedSize);
         encoded.order(ByteOrder.LITTLE_ENDIAN);
 
+//        System.out.println("Buffer Pos: " + encoded.position());
+
         // 1. Timestamp
         long timestamp = entry.getTimeStamp();
         encoded.putLong(timestamp);
 
+//        System.out.println("Buffer Pos: " + encoded.position());
+
         // 2. Key size
         encoded.putInt(keySize);
+
+//        System.out.println("Buffer Pos: " + encoded.position());
 
         // 3. Value size
         encoded.putInt(valueSize);
 
+//        System.out.println("Buffer Pos: " + encoded.position());
+
         // 4. Key bytes
         encoded.put(serializedKey);
 
+//        System.out.println("Buffer Pos: " + encoded.position());
+
         // 5. Value bytes
         encoded.put(value);
+
+//        System.out.println("Buffer Pos: " + encoded.position());
 
         return encoded.array();
     }
@@ -87,6 +99,7 @@ public final class EntryCodec{
         List<MappedStoredEntry<K>> mappedStoredEntries = new ArrayList<>();
 
         while (offset < contentLength) {
+//            System.out.println("Before read: " + offset);
             Pair<StoredEntry, Integer> decodedEntry = decodeFrom(content, offset);
             MappedStoredEntry<K> mappedStoredEntry =
                     new MappedStoredEntry<>(
@@ -97,7 +110,8 @@ public final class EntryCodec{
                             decodedEntry.second
                             );
             mappedStoredEntries.add(mappedStoredEntry);
-            offset += decodedEntry.second;
+            offset = decodedEntry.second;
+//            System.out.println("After read: " + offset);
         }
 
         return mappedStoredEntries;
@@ -124,25 +138,37 @@ public final class EntryCodec{
         // Move buffer position to offset
         buffer.position(offset);
 
+//        System.out.println("Buffer Pos: " + buffer.position() + " Offset: " + offset);
+
         // 1. Read timestamp
         long timeStamp = buffer.getLong();
         offset += RESERVED_TIMESTAMP_SIZE;
+
+//        System.out.println("Buffer Pos: " + buffer.position() + " Offset: " + offset);
 
         // 2. Read key size
         int keySize = buffer.getInt();
         offset += RESERVED_KEY_SIZE;
 
+//        System.out.println("Buffer Pos: " + buffer.position() + " Offset: " + offset);
+
         // 3. Read value size
         int valueSize = buffer.getInt();
         offset += RESERVED_VALUE_SIZE;
+
+//        System.out.println("Buffer Pos: " + buffer.position() + " Offset: " + offset);
 
         // 4. Read serialized key
         byte[] serializedKey = Arrays.copyOfRange(content, offset, offset + keySize);
         offset += keySize;
 
+//        System.out.println("Buffer Pos: " + buffer.position() + " Offset: " + offset);
+
         // 5. Read value
         byte[] value = Arrays.copyOfRange(content, offset, offset + valueSize);
         offset += valueSize;
+
+//        System.out.println("Buffer Pos: " + buffer.position() + " Offset: " + offset);
 
         StoredEntry storedEntry = new StoredEntry(serializedKey, value, timeStamp);
         Pair<StoredEntry, Integer> decodedEntry = new Pair<>(storedEntry, offset);

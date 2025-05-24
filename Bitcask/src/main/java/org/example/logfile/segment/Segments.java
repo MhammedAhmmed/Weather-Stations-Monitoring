@@ -223,9 +223,13 @@ public class Segments<K extends BitCaskKey> {
     private void maybeRolloverActiveSegment() {
         Segment<K> newSegment = maybeRolloverSegment(activeSegment);
         if (newSegment != null) {
+            System.out.println("Roll over");
             inactiveSegments.put(activeSegment.getFileId(), activeSegment);
             activeSegment = newSegment;
+            return;
         }
+
+        System.out.println("Not Roll over");
     }
 
     /**

@@ -3,14 +3,11 @@ package org.example;
 import org.example.clock.Clock;
 import org.example.clock.SystemClock;
 import org.example.config.TestKey;
-import org.example.logfile.Store;
 import org.example.logfile.entry.MappedStoredEntry;
-import org.example.logfile.entry.StoredEntry;
 import org.example.logfile.segment.AppendEntryResponse;
 import org.example.logfile.segment.Segment;
 import org.example.logfile.segment.Segments;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,14 +29,14 @@ public class Main {
         System.out.println("Using directory: " + directory);
 
         Clock clock = new SystemClock();
-        long maxSegmentSizeBytes = 1024 * 1024; // 1MB
+        long maxSegmentSizeBytes = 1024; // 1KB
 
         // Step 1: Create Segments instance
         Segments<TestKey> segments = new Segments<>(directory, maxSegmentSizeBytes, clock);
         System.out.println("Number of inActive segments: " + segments.getInactiveSegments().size());
 
         // Create and append 5 messages
-        for (long i = 1; i <= 5; i++) {
+        for (long i = 1; i <= 20; i++) {
             Weather weather = new Weather(
                     50 + (int)i,
                     20 + (int)i,
@@ -55,14 +52,17 @@ public class Main {
             byte[] valueBytes = msg.serialize();
 
             AppendEntryResponse response = segments.append(
-                    new TestKey(Long.toString(msg.getStationId())), valueBytes);
+                    new TestKey(Integer.toString((int) msg.getStationId())), valueBytes);
 
             System.out.println("Appended message key=" + i + " at offset=" + response.getOffset());
         }
+        System.out.println("Size of file after write: " + segments.getActiveSegment().sizeInBytes());
+
 
         Function<byte[], TestKey> keyMapper = TestKey::deserialize;
         // Read active segment entries
         List<MappedStoredEntry<TestKey>> activeEntries = segments.readFullSegment(segments.getActiveSegment().getFileId(), keyMapper);
+        System.out.println("Size: " + activeEntries.size());
         System.out.println("Active segment entries:");
         for (MappedStoredEntry<TestKey> e : activeEntries) {
             Message msg = Message.deserialize(e.getValue());  // Deserialize value bytes
