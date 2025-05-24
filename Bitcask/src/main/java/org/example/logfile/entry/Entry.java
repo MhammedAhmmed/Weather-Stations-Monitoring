@@ -28,11 +28,11 @@ public class Entry <K extends BitCaskKey> {
      * @param key
      * @param value
      */
-    public Entry(K key, byte[] value) {
+    public Entry(K key, byte[] value, Clock clock) {
         this.key = key;
         this.value = value;
         this.timeStamp = 0;
-        this.clock = new SystemClock();
+        this.clock = clock;
     }
 
     /**
@@ -41,11 +41,11 @@ public class Entry <K extends BitCaskKey> {
      * @param value
      * @param timeStamp
      */
-    public Entry(K key, byte[] value, long timeStamp) {
+    public Entry(K key, byte[] value, long timeStamp, Clock clock) {
         this.key = key;
         this.value = value;
         this.timeStamp = timeStamp;
-        this.clock = new SystemClock();
+        this.clock = clock;
     }
 
     public K getKey() {

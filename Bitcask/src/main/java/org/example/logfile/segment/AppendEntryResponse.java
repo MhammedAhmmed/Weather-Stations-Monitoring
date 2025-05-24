@@ -3,12 +3,12 @@ package org.example.logfile.segment;
 /**
  * AppendedEntryResponse: response from appending entry into segment
  */
-public class AppendedEntryResponse {
+public class AppendEntryResponse {
     private long fileId;
     private long offset;
     private int entryLength;
 
-    public AppendedEntryResponse(long fileId, long offset, int entryLength) {
+    public AppendEntryResponse(long fileId, long offset, int entryLength) {
         this.fileId = fileId;
         this.offset = offset;
         this.entryLength = entryLength;

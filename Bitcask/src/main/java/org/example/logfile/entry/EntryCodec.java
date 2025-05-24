@@ -1,6 +1,7 @@
 package org.example.logfile.entry;
 
 import org.example.config.BitCaskKey;
+import org.example.config.Pair;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -68,8 +69,8 @@ public final class EntryCodec{
      */
     public static StoredEntry decode(byte[] content) {
         int offset = 0;
-        DecodedEntry decodedEntry = decodeFrom(content, offset);
-        return decodedEntry.getEntry();
+        Pair<StoredEntry, Integer> decodedEntry = decodeFrom(content, offset);
+        return decodedEntry.first;
     }
 
     /**
@@ -86,17 +87,17 @@ public final class EntryCodec{
         List<MappedStoredEntry<K>> mappedStoredEntries = new ArrayList<>();
 
         while (offset < contentLength) {
-            DecodedEntry decodedEntry = decodeFrom(content, offset);
+            Pair<StoredEntry, Integer> decodedEntry = decodeFrom(content, offset);
             MappedStoredEntry<K> mappedStoredEntry =
                     new MappedStoredEntry<>(
-                            keyMapper.apply(decodedEntry.getEntry().getKey()),
-                            decodedEntry.getEntry().getValue(),
-                            decodedEntry.getEntry().getTimeStamp(),
+                            keyMapper.apply(decodedEntry.first.getKey()),
+                            decodedEntry.first.getValue(),
+                            decodedEntry.first.getTimeStamp(),
                             offset,
-                            decodedEntry.getOffset()
+                            decodedEntry.second
                             );
             mappedStoredEntries.add(mappedStoredEntry);
-            offset += decodedEntry.getOffset();
+            offset += decodedEntry.second;
         }
 
         return mappedStoredEntries;
@@ -116,7 +117,7 @@ public final class EntryCodec{
      * @param offset
      * @return
      */
-    public static <K extends BitCaskKey> DecodedEntry decodeFrom(byte[] content, int offset) {
+    public static <K extends BitCaskKey> Pair<StoredEntry, Integer> decodeFrom(byte[] content, int offset) {
         ByteBuffer buffer = ByteBuffer.wrap(content);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
 
@@ -144,7 +145,7 @@ public final class EntryCodec{
         offset += valueSize;
 
         StoredEntry storedEntry = new StoredEntry(serializedKey, value, timeStamp);
-        DecodedEntry decodedEntry = new DecodedEntry(storedEntry, offset);
+        Pair<StoredEntry, Integer> decodedEntry = new Pair<>(storedEntry, offset);
 
         return decodedEntry;
     }

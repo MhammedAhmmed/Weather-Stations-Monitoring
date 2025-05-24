@@ -16,20 +16,50 @@ public class Store {
     long currentWriterOffset;
     String filePath;
 
+    public Store() {
+    }
+
     /**
      * Store constructor: creates an instance of Store from the filePath.
      * It creates 2 file pointers: one for writing and other for reading.
      * @param filePath
      */
-    public Store(String filePath){
+    public static Store newStore(String filePath){
+        Store store = new Store();
         try {
-            this.writer = new RandomAccessFile(filePath, "rws");
-            this.reader = new RandomAccessFile(filePath, "r");
+            store.writer = new RandomAccessFile(filePath, "r");
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
-        this.currentWriterOffset = 0;
-        this.filePath = filePath;
+        try {
+            store.reader = new RandomAccessFile(filePath, "r");
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        store.currentWriterOffset = 0;
+        store.filePath = filePath;
+
+        return store;
+    }
+
+    /**
+     * reloadStore: creates an instance of Store with only the read file pointer.
+     * This operation is executed only during the start-up to reload the state, if any from disk.
+     * @param filePath
+     * @return
+     */
+    public static Store reloadStore(String filePath) {
+        Store store = new Store();
+        store.writer = null;
+        try {
+            store.reader = new RandomAccessFile(filePath, "r");
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        store.currentWriterOffset = 0;
+        store.filePath = filePath;
+
+        return store;
     }
 
     /**

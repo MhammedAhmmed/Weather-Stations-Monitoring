@@ -19,22 +19,49 @@ import static org.example.logfile.entry.EntryCodec.*;
  * and accessed by its store
  */
 public class Segment <K extends BitCaskKey> {
-    long fileId;
-    String filePath;
-    Store store;
+    private long fileId;
+    private String filePath;
+    private Store store;
 
-    private final String segmentFilePrefix = "log";
-    private final String segmentFileSuffix = "data";
+    public static final String SEGMENT_FILE_PREFIX = "log";
+    public static final String SEGMENT_FILE_SUFFIX = "data";
+
+    public Segment() {
+    }
 
     /**
      * Segment constructor: creates a new segment with its identifier and its store
      * @param fileId
      * @param directory
      */
-    public Segment(long fileId, String directory) {
-        this.filePath = createSegment(fileId, directory);
-        this.fileId = fileId;
-        this.store = new Store(this.filePath);
+    public static <K extends BitCaskKey> Segment<K> newSegment(long fileId, String directory) {
+        Segment<K> segment = new Segment<>();
+        segment.filePath = createSegment(fileId, directory);
+        segment.fileId = fileId;
+        segment.store = Store.newStore(segment.filePath);
+        return segment;
+    }
+
+    public static <K extends BitCaskKey> Segment<K> reloadInactiveSegment(long fileId, String directory) {
+        String filePath = segmentName(fileId, directory);
+        Store store = Store.reloadStore(filePath);
+        Segment<K> segment = new Segment<>();
+        segment.fileId = fileId;
+        segment.filePath = filePath;
+        segment.store = store;
+        return segment;
+    }
+
+    public long getFileId() {
+        return fileId;
+    }
+
+    public Store getStore() {
+        return store;
+    }
+
+    public String getFilePath() {
+        return filePath;
     }
 
     /**
@@ -44,11 +71,11 @@ public class Segment <K extends BitCaskKey> {
      * @param entry
      * @return
      */
-    public AppendedEntryResponse append(Entry<K> entry) {
+    public AppendEntryResponse append(Entry<K> entry) {
         byte[] encoded = encode(entry);
         long offset = this.store.append(encoded);
 
-        return new AppendedEntryResponse(this.fileId, offset, encoded.length);
+        return new AppendEntryResponse(this.fileId, offset, encoded.length);
     }
 
     /**
@@ -85,6 +112,14 @@ public class Segment <K extends BitCaskKey> {
     }
 
     /**
+     * sync: Performs a file sync, ensures all the disk blocks (or pages)
+     * at the Kernel page cache are flushed to the disk
+     */
+    public void sync() {
+        this.store.sync();
+    }
+
+    /**
      * stopWrite: closes writer pointer in segment file when it reaches the threshold
      */
     public void stopWrite() {
@@ -105,7 +140,7 @@ public class Segment <K extends BitCaskKey> {
      * @param directory
      * @return
      */
-    public String createSegment(long fileId, String directory) {
+    public static String createSegment(long fileId, String directory) {
         String filePath = segmentName(fileId, directory);
         try {
             Files.createFile(Path.of(filePath));
@@ -122,7 +157,7 @@ public class Segment <K extends BitCaskKey> {
      * @param directory
      * @return
      */
-    public String segmentName(long fileId, String directory) {
-        return directory + "/" +  fileId + "_" + segmentFilePrefix + "." + segmentFileSuffix;
+    public static String segmentName(long fileId, String directory) {
+        return directory + "/" +  fileId + "_" + SEGMENT_FILE_PREFIX + "." + SEGMENT_FILE_SUFFIX;
     }
 }
