@@ -49,6 +49,22 @@ public class Segments<K extends BitCaskKey> {
         reload();
     }
 
+    public Segment<K> getActiveSegment() {
+        return activeSegment;
+    }
+
+    public Map<Long, Segment<K>> getInactiveSegments() {
+        return inactiveSegments;
+    }
+
+    public long getMaxSegmentSizeBytes() {
+        return maxSegmentSizeBytes;
+    }
+
+    public String getDirectory() {
+        return directory;
+    }
+
     /**
      * append:  performs an append operation in the active segment file.
      * Before the append operation can be done, the size of the active segment is checked.
@@ -77,6 +93,17 @@ public class Segments<K extends BitCaskKey> {
         Segment<K> segment = inactiveSegments.get(fileId);
         if (segment != null) {
             return segment.read(offset, size);
+        }
+        throw new IllegalArgumentException("Invalid file id " + fileId);
+    }
+
+    public List<MappedStoredEntry<K>> readFullSegment(long fileId, Function<byte[], K> keyMapper) {
+        if (fileId == activeSegment.getFileId()) {
+            return activeSegment.readFull(keyMapper);
+        }
+        Segment<K> segment = inactiveSegments.get(fileId);
+        if (segment != null) {
+            return segment.readFull(keyMapper);
         }
         throw new IllegalArgumentException("Invalid file id " + fileId);
     }

@@ -27,7 +27,7 @@ public class Store {
     public static Store newStore(String filePath){
         Store store = new Store();
         try {
-            store.writer = new RandomAccessFile(filePath, "r");
+            store.writer = new RandomAccessFile(filePath, "rws");
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
