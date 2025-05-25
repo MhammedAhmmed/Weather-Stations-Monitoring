@@ -1,0 +1,26 @@
+filebeat.inputs:
+- type: filestream
+  enabled: true
+  id: my-java-collector
+  paths:
+    - /data/json/*.json  # Matches Python converter's output
+  json.keys_under_root: true
+  json.add_error_key: true
+  processors:
+    - decode_json_fields:
+        fields: ["message"]
+        target: ""
+        overwrite_keys: true
+    - rename:
+        fields:
+          - from: "weather.humidity"
+            to: "humidity"
+          - from: "weather.temperature"
+            to: "temperature"
+          - from: "weather.wind_speed"
+            to: "wind_speed"
+        ignore_missing: true
+        fail_on_error: false
+
+output.logstash:
+  hosts: ["logstash:5044"]  # Docker service name
