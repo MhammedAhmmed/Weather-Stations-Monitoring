@@ -56,7 +56,7 @@ public class Main {
             stationsId[i] = i + 1;
         }
 
-//        // Create and append 5 messages
+        // Create and append 5 messages
 //        for (int i = 0; i < 20; i++) {
 //            Weather weather = new Weather(
 //                    50 + i,
@@ -80,7 +80,6 @@ public class Main {
 //        System.out.println(Message.deserialize(bytes));
 
 
-//        Function<byte[], TestKey> keyMapper = TestKey::deserialize;
         // Read active segment entries
         List<MappedStoredEntry<TestKey>> activeEntries = kvStore.getSegments().readFullSegment(
                 kvStore.getSegments().getActiveSegment().getFileId(), keyMapper);
