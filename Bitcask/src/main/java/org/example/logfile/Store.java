@@ -168,7 +168,7 @@ public class Store {
 
         File file = new File(this.filePath);
 
-        System.out.println("FilePath to delete from store: " + file.getPath());
+//        System.out.println("FilePath to delete from store: " + file.getPath());
 
         if (file.delete()) {
             System.out.println("File deleted successfully.");

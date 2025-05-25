@@ -1,6 +1,7 @@
 package org.example.logfile.segment;
 
 import org.example.config.BitCaskKey;
+import org.example.kv.EntryPointer;
 import org.example.logfile.Store;
 import org.example.logfile.entry.Entry;
 import org.example.logfile.entry.MappedStoredEntry;
@@ -162,4 +163,8 @@ public class Segment <K extends BitCaskKey> {
     public static String segmentName(long fileId, String directory) {
         return directory + "/" +  fileId + "_" + SEGMENT_FILE_PREFIX + "." + SEGMENT_FILE_SUFFIX;
     }
+
+//    public static String hintName(long fileId, String directory) {
+//        return directory + "/" + fileId + "_" + SEGMENT_FILE_PREFIX + ".hint";
+//    }
 }

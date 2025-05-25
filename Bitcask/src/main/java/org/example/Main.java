@@ -15,6 +15,7 @@ import org.example.merge.Worker;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -58,17 +59,30 @@ public class Main {
         }
     }
 
+
+    private static Message createTestMessage(long stationId, int seq) {
+        return new Message(
+                stationId,
+                10,
+                getRandomBatteryStatus().name(),
+                System.currentTimeMillis(),
+                new Weather(50 + seq, 20 + seq, 10 + seq)
+        );
+    }
+
     public static void main(String[] args) throws IOException, InterruptedException {
 
 
         String path = "E:\\CSED\\year 3\\term 6\\DDIA\\labs\\project\\data";
-//        File file = new File(path);
-//        if (file.delete()) {
-//            System.out.println("File deleted successfully.");
-//        } else {
-//            System.out.println("Failed to delete the file.");
-//        }
-        Path tempDir = Files.createDirectory(Path.of(path));
+        // Clean up test directory before starting
+        File dir = new File(path);
+        if (dir.exists()) {
+            Files.walk(Path.of(path))
+                    .sorted(Comparator.reverseOrder())
+                    .map(Path::toFile)
+                    .forEach(File::delete);
+        }
+        Files.createDirectory(Path.of(path));
         String directory = path;
         System.out.println("Using directory: " + directory);
 
@@ -97,22 +111,9 @@ public class Main {
         }
 
 //         Create and append messages
-        for (int i = 0; i < 40; i++) {
-            Weather weather = new Weather(
-                    50 + i,
-                    20 + i,
-                    10 + i);
-            Message msg = new Message(
-                    stationsId[i % 5],
-                    10,
-                    getRandomBatteryStatus().name(),
-                    System.currentTimeMillis(),
-                    weather);
-
-            // Serialize message to bytes
-            byte[] valueBytes = msg.serialize();
-
-            kvStore.put(new TestKey(Long.toString(stationsId[i % 5])), valueBytes);
+        for (int i = 0; i < 30; i++) {  // Increased to force segment creation
+            Message msg = createTestMessage(stationsId[i % 5], i);
+            kvStore.put(new TestKey(Long.toString(stationsId[i % 5])), msg.serialize());
         }
 
         System.out.println("Before merge:");
