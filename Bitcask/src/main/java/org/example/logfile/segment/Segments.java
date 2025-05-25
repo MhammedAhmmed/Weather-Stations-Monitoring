@@ -185,7 +185,7 @@ public class Segments<K extends BitCaskKey> {
      * This operation is called from WriteBack during merging operation
      * @param fileIds
      */
-    public void remove(List<Long> fileIds) {
+    public void remove(long[] fileIds) {
         for (Long fileId : fileIds) {
             Segment<K> segment = inactiveSegments.remove(fileId);
             if (segment != null) {

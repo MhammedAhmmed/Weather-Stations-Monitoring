@@ -12,7 +12,7 @@ import org.example.logfile.segment.WriteBackResponse;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 
 /**
@@ -25,7 +25,7 @@ import java.util.function.Function;
 public class KVStore <K extends BitCaskKey> {
     private Segments<K> segments;
     private KeyDirectory<K> keyDirectory;
-    private Lock lock;
+    private final ReentrantReadWriteLock lock;
 
     /**
      * KVStore constructor: configures the segments controller and the key directory then
@@ -37,6 +37,7 @@ public class KVStore <K extends BitCaskKey> {
         Segments<K> segments = new Segments<>(config.getDirectory(), config.getMaxSegmentSizeBytes(), config.getClock());
         this.segments = segments;
         this.keyDirectory = new KeyDirectory<>(config.getKeyDirectoryCapacity());
+        this.lock = new ReentrantReadWriteLock();
 
         reload(config);
     }
@@ -49,10 +50,6 @@ public class KVStore <K extends BitCaskKey> {
         return keyDirectory;
     }
 
-    public Lock getLock() {
-        return lock;
-    }
-
     /**
      * put: writes the key and value into segment file and also add the key and entry pointer
      * in the keyDirectory map
@@ -60,13 +57,16 @@ public class KVStore <K extends BitCaskKey> {
      * @param value
      */
     public void put(K key, byte[] value) {
-        this.lock.lock();
+        this.lock.writeLock();
 
-        AppendEntryResponse appendEntryResponse = this.segments.append(key, value);
+        try {
+            AppendEntryResponse appendEntryResponse = this.segments.append(key, value);
 
-        this.keyDirectory.put(key, new EntryPointer(appendEntryResponse));
+            this.keyDirectory.put(key, new EntryPointer(appendEntryResponse));
+        } finally {
+            lock.writeLock().unlock();
+        }
 
-        this.lock.unlock();
     }
 
     /**
@@ -86,21 +86,22 @@ public class KVStore <K extends BitCaskKey> {
      * @return
      */
     public Pair<byte[], Boolean> silentGet(K key) {
-        this.lock.lock();
+        this.lock.readLock();
 
-        Pair<EntryPointer, Boolean> entryPointerBooleanPair = this.keyDirectory.get(key);
-        if (entryPointerBooleanPair.second) {
-            StoredEntry storedEntry = this.segments.read(
-                    entryPointerBooleanPair.first.getFileId(),
-                    entryPointerBooleanPair.first.getOffset(),
-                    entryPointerBooleanPair.first.getEntryLength());
+        try {
+            Pair<EntryPointer, Boolean> entryPointerBooleanPair = this.keyDirectory.get(key);
+            if (entryPointerBooleanPair.second) {
+                StoredEntry storedEntry = this.segments.read(
+                        entryPointerBooleanPair.first.getFileId(),
+                        entryPointerBooleanPair.first.getOffset(),
+                        entryPointerBooleanPair.first.getEntryLength());
 
-            this.lock.unlock();
-            return new Pair<>(storedEntry.getValue(), true);
+                return new Pair<>(storedEntry.getValue(), true);
+            }
+            return new Pair<>(null, false);
+        } finally {
+            this.lock.readLock().unlock();
         }
-
-        this.lock.unlock();
-        return new Pair<>(null, false);
     }
 
     /**
@@ -109,19 +110,21 @@ public class KVStore <K extends BitCaskKey> {
      * @return
      */
     public byte[] get(K key) {
-        this.lock.lock();
+        this.lock.readLock();
 
-        Pair<EntryPointer, Boolean> entryPointerBooleanPair = this.keyDirectory.get(key);
-        if (entryPointerBooleanPair.second) {
-            StoredEntry storedEntry = this.segments.read(
-                    entryPointerBooleanPair.first.getFileId(),
-                    entryPointerBooleanPair.first.getOffset(),
-                    entryPointerBooleanPair.first.getEntryLength());
-            this.lock.unlock();
-            return storedEntry.getValue();
+        try {
+            Pair<EntryPointer, Boolean> entryPointerBooleanPair = this.keyDirectory.get(key);
+            if (entryPointerBooleanPair.second) {
+                StoredEntry storedEntry = this.segments.read(
+                        entryPointerBooleanPair.first.getFileId(),
+                        entryPointerBooleanPair.first.getOffset(),
+                        entryPointerBooleanPair.first.getEntryLength());
+                return storedEntry.getValue();
+            }
+            return null;
+        } finally {
+            this.lock.readLock().unlock();
         }
-        this.lock.unlock();
-        return null;
     }
 
     /**
@@ -133,14 +136,16 @@ public class KVStore <K extends BitCaskKey> {
      */
     public Pair<long[], List<List<MappedStoredEntry<K>>>> readInactiveSegments(
             int totalSegments, Function<byte[], K> keyMapper) {
-        this.lock.lock();
+        this.lock.readLock();
 
-        Pair<long[], List<List<MappedStoredEntry<K>>>> pair =
-                this.segments.readInactiveSegments(totalSegments, keyMapper);
+        try {
+            Pair<long[], List<List<MappedStoredEntry<K>>>> pair =
+                    this.segments.readInactiveSegments(totalSegments, keyMapper);
 
-        this.lock.unlock();
-
-        return pair;
+            return pair;
+        } finally {
+            this.lock.readLock().unlock();
+        }
     }
 
     /**
@@ -150,14 +155,16 @@ public class KVStore <K extends BitCaskKey> {
      */
     public Pair<long[], List<List<MappedStoredEntry<K>>>> readAllInactiveSegments(
             Function<byte[], K> keyMapper) {
-        this.lock.lock();
+        this.lock.readLock();
 
-        Pair<long[], List<List<MappedStoredEntry<K>>>> pair =
-                this.segments.readAllInactiveSegments(keyMapper);
+        try {
+            Pair<long[], List<List<MappedStoredEntry<K>>>> pair =
+                    this.segments.readAllInactiveSegments(keyMapper);
 
-        this.lock.unlock();
-
-        return pair;
+            return pair;
+        } finally {
+            this.lock.readLock().unlock();
+        }
     }
 
     /**
@@ -168,36 +175,43 @@ public class KVStore <K extends BitCaskKey> {
      * @param fileIds
      * @param changes
      */
-    public void writeBack(List<Long> fileIds, Map<K, MappedStoredEntry<K>> changes) {
-        this.lock.lock();
+    public void writeBack(long[] fileIds, Map<K, MappedStoredEntry<K>> changes) {
+        this.lock.writeLock();
 
-        List<WriteBackResponse<K>> writeBackResponses = this.segments.writeBack(changes);
-        this.keyDirectory.bulkUpdate(writeBackResponses);
-        this.segments.remove(fileIds);
-        this.lock.unlock();
+        try {
+            List<WriteBackResponse<K>> writeBackResponses = this.segments.writeBack(changes);
+            this.keyDirectory.bulkUpdate(writeBackResponses);
+            this.segments.remove(fileIds);
+        } finally {
+            this.lock.writeLock().unlock();
+        }
     }
 
     /**
      * clearLog: removes all the log files active and in active
      */
     public void clearLog() {
-        this.lock.lock();
+        this.lock.writeLock();
 
-        this.segments.removeActive();
-        this.segments.removeAllInactive();
-
-        this.lock.unlock();
+        try {
+            this.segments.removeActive();
+            this.segments.removeAllInactive();
+        } finally {
+            this.lock.writeLock().unlock();
+        }
     }
 
     /**
      * sync: performs a sync of all the active and inactive segments
      */
     public void sync() {
-        this.lock.lock();
+        this.lock.writeLock();
 
-        this.segments.sync();
-
-        this.lock.unlock();
+        try {
+            this.segments.sync();
+        } finally {
+            this.lock.writeLock().unlock();
+        }
     }
 
     /**
@@ -205,11 +219,13 @@ public class KVStore <K extends BitCaskKey> {
      * and removing the entire in-memory representation of the inactive segments
      */
     public void shutdown() {
-        this.lock.lock();
+        this.lock.writeLock();
 
-        this.segments.shutdown();
-
-        this.lock.unlock();
+        try {
+            this.segments.shutdown();
+        } finally {
+            this.lock.writeLock().unlock();
+        }
     }
 
     /**
@@ -217,13 +233,15 @@ public class KVStore <K extends BitCaskKey> {
      * @param config
      */
     public void reload(Config<K> config) {
-        this.lock.lock();
+        this.lock.writeLock();
 
-        for (Map.Entry<Long, Segment<K>> entry: this.segments.allInactiveSegments().entrySet()) {
-            List<MappedStoredEntry<K>> entries = entry.getValue().readFull(config.getMergeConfig().getKeyMapper());
-            this.keyDirectory.reload(entry.getKey(), entries);
+        try {
+            for (Map.Entry<Long, Segment<K>> entry: this.segments.allInactiveSegments().entrySet()) {
+                List<MappedStoredEntry<K>> entries = entry.getValue().readFull(config.getMergeConfig().getKeyMapper());
+                this.keyDirectory.reload(entry.getKey(), entries);
+            }
+        } finally {
+            this.lock.writeLock().unlock();
         }
-
-        this.lock.unlock();
     }
 }

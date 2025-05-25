@@ -18,7 +18,6 @@ public class MergeConfig <K extends BitCaskKey> {
      * @param totalSegmentsToRead
      * @param keyMapper
      */
-    // todo: check for Duration.ofMinutes method
     public MergeConfig(int totalSegmentsToRead, Function<byte[], K> keyMapper) {
         this.totalSegmentsToRead = totalSegmentsToRead;
         this.shouldReadAllSegments = false;
