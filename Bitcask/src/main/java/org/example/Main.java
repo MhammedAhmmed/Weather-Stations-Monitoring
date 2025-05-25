@@ -4,18 +4,17 @@ import org.example.clock.Clock;
 import org.example.clock.SystemClock;
 import org.example.config.Config;
 import org.example.config.MergeConfig;
-import org.example.config.TestKey;
-import org.example.kv.EntryPointer;
 import org.example.kv.KVStore;
 import org.example.logfile.entry.MappedStoredEntry;
-import org.example.logfile.segment.AppendEntryResponse;
 import org.example.logfile.segment.Segment;
-import org.example.logfile.segment.Segments;
 import org.example.merge.Worker;
+import org.example.model.BatteryStatus;
+import org.example.model.Key;
+import org.example.model.Message;
+import org.example.model.Weather;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -31,29 +30,29 @@ public class Main {
         return values[index];
     }
 
-    private static void printSegments(KVStore<TestKey> kvStore, Function<byte[], TestKey> keyMapper) {
+    private static void printSegments(KVStore<Key> kvStore, Function<byte[], Key> keyMapper) {
         // Active segment
-        List<MappedStoredEntry<TestKey>> activeEntries =
+        List<MappedStoredEntry<Key>> activeEntries =
                 kvStore.getSegments().readFullSegment(kvStore.getSegments().getActiveSegment().getFileId(), keyMapper);
         System.out.println("Active segment entries:");
-        for (MappedStoredEntry<TestKey> e : activeEntries) {
+        for (MappedStoredEntry<Key> e : activeEntries) {
             System.out.println("Key: " + e.getKey() + ", Message: " + Message.deserialize(e.getValue()));
         }
 
         // Inactive segments
-        for (Map.Entry<Long, Segment<TestKey>> entry : kvStore.getSegments().allInactiveSegments().entrySet()) {
+        for (Map.Entry<Long, Segment<Key>> entry : kvStore.getSegments().allInactiveSegments().entrySet()) {
             long fileId = entry.getKey();
-            List<MappedStoredEntry<TestKey>> entries = kvStore.getSegments().readFullSegment(fileId, keyMapper);
+            List<MappedStoredEntry<Key>> entries = kvStore.getSegments().readFullSegment(fileId, keyMapper);
             System.out.println("Inactive segment fileId=" + fileId + " entries:");
-            for (MappedStoredEntry<TestKey> e : entries) {
+            for (MappedStoredEntry<Key> e : entries) {
                 System.out.println("Key: " + e.getKey() + ", Message: " + Message.deserialize(e.getValue()));
             }
         }
     }
 
-    private static void printKeyDirectory(KVStore<TestKey> kvStore) {
+    private static void printKeyDirectory(KVStore<Key> kvStore) {
         System.out.println("KeyDirectory:");
-        for (TestKey key : kvStore.getKeyDirectory().getEntryByKey().keySet()) {
+        for (Key key : kvStore.getKeyDirectory().getEntryByKey().keySet()) {
             byte[] value = kvStore.get(key);
             System.out.println("Key: " + key + ", Message: " + Message.deserialize(value));
         }
@@ -90,11 +89,11 @@ public class Main {
         int keyDirectoryCapacity = 50;
         Clock clock = new SystemClock();
 
-        Function<byte[], TestKey> keyMapper = TestKey::deserialize;
+        Function<byte[], Key> keyMapper = Key::deserialize;
         Duration duration = Duration.ofSeconds(1);
-        MergeConfig<TestKey> mergeConfig = new MergeConfig<>(duration, keyMapper);
+        MergeConfig<Key> mergeConfig = new MergeConfig<>(duration, keyMapper);
 
-        Config<TestKey> config = new Config<>(
+        Config<Key> config = new Config<>(
                 directory,
                 maxSegmentSizeBytes,
                 keyDirectoryCapacity,
@@ -102,8 +101,8 @@ public class Main {
                 clock);
 
 
-        KVStore<TestKey> kvStore = new KVStore<>(config);
-        Worker<TestKey> worker = new Worker<>(kvStore, config);
+        KVStore<Key> kvStore = new KVStore<>(config);
+        Worker<Key> worker = new Worker<>(kvStore, config);
 
         long[] stationsId = new long[5];
         for (int i = 0; i < 5; i++) {
@@ -113,7 +112,7 @@ public class Main {
 //         Create and append messages
         for (int i = 0; i < 30; i++) {  // Increased to force segment creation
             Message msg = createTestMessage(stationsId[i % 5], i);
-            kvStore.put(new TestKey(Long.toString(stationsId[i % 5])), msg.serialize());
+            kvStore.put(new Key(Long.toString(stationsId[i % 5])), msg.serialize());
         }
 
         System.out.println("Before merge:");
