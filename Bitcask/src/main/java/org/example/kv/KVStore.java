@@ -10,6 +10,7 @@ import org.example.logfile.segment.Segment;
 import org.example.logfile.segment.Segments;
 import org.example.logfile.segment.WriteBackResponse;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -180,6 +181,9 @@ public class KVStore <K extends BitCaskKey> {
         try {
             List<WriteBackResponse<K>> writeBackResponses = this.segments.writeBack(changes);
             this.keyDirectory.bulkUpdate(writeBackResponses);
+
+            System.out.println("FileIds to remove in KVStore: " + Arrays.toString(fileIds));
+
             this.segments.remove(fileIds);
         } finally {
             this.lock.writeLock().unlock();

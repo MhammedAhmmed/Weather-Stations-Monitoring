@@ -34,6 +34,8 @@ public class Worker <K extends BitCaskKey> {
         this.kvStore = kvStore;
         this.config = config;
         this.scheduler = Executors.newSingleThreadScheduledExecutor();
+
+        start();
     }
 
     private void start() {

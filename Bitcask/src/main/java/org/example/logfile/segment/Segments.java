@@ -186,10 +186,12 @@ public class Segments<K extends BitCaskKey> {
      * @param fileIds
      */
     public void remove(long[] fileIds) {
+        System.out.println("FileIds to remove from Segments: " + Arrays.toString(fileIds));
         for (Long fileId : fileIds) {
-            Segment<K> segment = inactiveSegments.remove(fileId);
+            Segment<K> segment = inactiveSegments.get(fileId);
             if (segment != null) {
                 segment.remove();
+                inactiveSegments.remove(fileId);
             }
         }
     }
@@ -226,10 +228,9 @@ public class Segments<K extends BitCaskKey> {
             System.out.println("Roll over");
             inactiveSegments.put(activeSegment.getFileId(), activeSegment);
             activeSegment = newSegment;
-            return;
         }
 
-        System.out.println("Not Roll over");
+//        System.out.println("Not Roll over");
     }
 
     /**

@@ -145,10 +145,31 @@ public class Store {
     }
 
     /**
-     * remove: removes the file
+     * close: closes both reader and writer file pointers
+     */
+    public void close() {
+        try {
+            if (writer != null) {
+                writer.close();
+            }
+            if (reader != null) {
+                reader.close();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * remove: close the store first then removes the file
      */
     public void remove() {
+        close();
+
         File file = new File(this.filePath);
+
+        System.out.println("FilePath to delete from store: " + file.getPath());
+
         if (file.delete()) {
             System.out.println("File deleted successfully.");
         } else {
