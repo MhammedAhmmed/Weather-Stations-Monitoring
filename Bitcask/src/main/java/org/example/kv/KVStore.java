@@ -32,12 +32,25 @@ public class KVStore <K extends BitCaskKey> {
      * reloads the entries from segment files
      * @param config
      */
+    // todo: instantiate the lock
     public KVStore(Config<K> config) {
         Segments<K> segments = new Segments<>(config.getDirectory(), config.getMaxSegmentSizeBytes(), config.getClock());
         this.segments = segments;
         this.keyDirectory = new KeyDirectory<>(config.getKeyDirectoryCapacity());
 
         reload(config);
+    }
+
+    public Segments<K> getSegments() {
+        return segments;
+    }
+
+    public KeyDirectory<K> getKeyDirectory() {
+        return keyDirectory;
+    }
+
+    public Lock getLock() {
+        return lock;
     }
 
     /**

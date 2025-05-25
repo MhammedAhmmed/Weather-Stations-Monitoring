@@ -2,7 +2,11 @@ package org.example;
 
 import org.example.clock.Clock;
 import org.example.clock.SystemClock;
+import org.example.config.Config;
+import org.example.config.MergeConfig;
 import org.example.config.TestKey;
+import org.example.kv.EntryPointer;
+import org.example.kv.KVStore;
 import org.example.logfile.entry.MappedStoredEntry;
 import org.example.logfile.segment.AppendEntryResponse;
 import org.example.logfile.segment.Segment;
@@ -24,44 +28,62 @@ public class Main {
     }
 
     public static void main(String[] args) throws IOException {
-        Path tempDir = Files.createTempDirectory("bitcask_test");
-        String directory = tempDir.toString();
+
+        String path = "E:\\CSED\\year 3\\term 6\\DDIA\\labs\\project\\data";
+//        Path tempDir = Files.createDirectory(Path.of(path));
+        String directory = path;
         System.out.println("Using directory: " + directory);
 
-        Clock clock = new SystemClock();
         long maxSegmentSizeBytes = 1024; // 1KB
-
-        // Step 1: Create Segments instance
-        Segments<TestKey> segments = new Segments<>(directory, maxSegmentSizeBytes, clock);
-        System.out.println("Number of inActive segments: " + segments.getInactiveSegments().size());
-
-        // Create and append 5 messages
-        for (long i = 1; i <= 20; i++) {
-            Weather weather = new Weather(
-                    50 + (int)i,
-                    20 + (int)i,
-                    10 + (int)i);
-            Message msg = new Message(
-                    i,
-                    1,
-                    getRandomBatteryStatus().name(),
-                    System.currentTimeMillis(),
-                    weather);
-
-            // Serialize message to bytes
-            byte[] valueBytes = msg.serialize();
-
-            AppendEntryResponse response = segments.append(
-                    new TestKey(Long.toString(msg.getStationId())), valueBytes);
-
-            System.out.println("Appended message key=" + i + " at offset=" + response.getOffset());
-        }
-        System.out.println("Size of file after write: " + segments.getActiveSegment().sizeInBytes());
-
+        int keyDirectoryCapacity = 50;
+        Clock clock = new SystemClock();
 
         Function<byte[], TestKey> keyMapper = TestKey::deserialize;
+        MergeConfig<TestKey> mergeConfig = new MergeConfig<>(keyMapper);
+
+        Config<TestKey> config = new Config<>(
+                directory,
+                maxSegmentSizeBytes,
+                keyDirectoryCapacity,
+                mergeConfig,
+                clock);
+
+        KVStore<TestKey> kvStore = new KVStore<>(config);
+
+
+        long[] stationsId = new long[5];
+        for (int i = 0; i < 5; i++) {
+            stationsId[i] = i + 1;
+        }
+
+//        // Create and append 5 messages
+//        for (int i = 0; i < 20; i++) {
+//            Weather weather = new Weather(
+//                    50 + i,
+//                    20 + i,
+//                    10 + i);
+//            Message msg = new Message(
+//                    stationsId[i % 5],
+//                    10,
+//                    getRandomBatteryStatus().name(),
+//                    System.currentTimeMillis(),
+//                    weather);
+//
+//            // Serialize message to bytes
+//            byte[] valueBytes = msg.serialize();
+//
+//            kvStore.put(new TestKey(Long.toString(stationsId[i % 5])), valueBytes);
+//        }
+
+//        // test get from kvStore
+//        byte[] bytes = kvStore.get(new TestKey(Long.toString(2)));
+//        System.out.println(Message.deserialize(bytes));
+
+
+//        Function<byte[], TestKey> keyMapper = TestKey::deserialize;
         // Read active segment entries
-        List<MappedStoredEntry<TestKey>> activeEntries = segments.readFullSegment(segments.getActiveSegment().getFileId(), keyMapper);
+        List<MappedStoredEntry<TestKey>> activeEntries = kvStore.getSegments().readFullSegment(
+                kvStore.getSegments().getActiveSegment().getFileId(), keyMapper);
         System.out.println("Size: " + activeEntries.size());
         System.out.println("Active segment entries:");
         for (MappedStoredEntry<TestKey> e : activeEntries) {
@@ -70,14 +92,21 @@ public class Main {
         }
 
         // Read inactive segments entries
-        for (Map.Entry<Long, Segment<TestKey>> entry : segments.allInactiveSegments().entrySet()) {
+        for (Map.Entry<Long, Segment<TestKey>> entry : kvStore.getSegments().allInactiveSegments().entrySet()) {
             long fileId = entry.getKey();
-            List<MappedStoredEntry<TestKey>> entries = segments.readFullSegment(fileId, keyMapper);
+            List<MappedStoredEntry<TestKey>> entries = kvStore.getSegments().readFullSegment(fileId, keyMapper);
             System.out.println("Inactive segment fileId=" + fileId + " entries:");
             for (MappedStoredEntry<TestKey> e : entries) {
                 Message msg = Message.deserialize(e.getValue());
                 System.out.println("Key: " + e.getKey() + ", Message: " + msg);
             }
+        }
+
+        System.out.println("KeyDirectory: ");
+        //Read KVStore
+        for (TestKey key: kvStore.getKeyDirectory().getEntryByKey().keySet()) {
+            byte[] bytes = kvStore.get(key);
+            System.out.println("Key: " + key.toString() + " Message: " + Message.deserialize(bytes));
         }
     }
 }

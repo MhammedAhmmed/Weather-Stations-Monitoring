@@ -25,6 +25,10 @@ public class KeyDirectory <K extends BitCaskKey> {
         this.entryByKey = new HashMap<>(initialCapacity);
     }
 
+    public Map<K, EntryPointer> getEntryByKey() {
+        return entryByKey;
+    }
+
     /**
      * reload: reloads the state of the KeyDirectory during start-up.
      * As a part of reloading the state in bitcask model, all the inactive segments are read
