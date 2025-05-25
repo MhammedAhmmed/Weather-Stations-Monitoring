@@ -1,0 +1,119 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: weather
+---
+# Kafka Configuration
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+  namespace: weather
+spec:
+  serviceName: kafka
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      containers:
+      - name: kafka
+        image: bitnami/kafka:3.4.0
+        env:
+        - name: KAFKA_CFG_NODE_ID
+          value: "1"
+        - name: KAFKA_CFG_PROCESS_ROLES
+          value: "controller,broker"
+        - name: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
+          value: "1@kafka-0.kafka.weather.svc.cluster.local:9093"
+        - name: KAFKA_CFG_LISTENERS
+          value: "PLAINTEXT://:9092,CONTROLLER://:9093"
+        - name: KAFKA_CFG_ADVERTISED_LISTENERS
+          value: "PLAINTEXT://kafka-0.kafka.weather.svc.cluster.local:9092"
+        - name: KAFKA_CFG_INTER_BROKER_LISTENER_NAME
+          value: "PLAINTEXT"
+        - name: ALLOW_PLAINTEXT_LISTENER
+          value: "yes"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: weather
+spec:
+  clusterIP: None
+  ports:
+  - port: 9092
+    name: client
+  selector:
+    app: kafka
+---
+# Weather Stations
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: weather-station
+  namespace: weather
+spec:
+  serviceName: weather-station
+  replicas: 10
+  selector:
+    matchLabels:
+      app: weather-station
+  template:
+    metadata:
+      labels:
+        app: weather-station
+    spec:
+      containers:
+      - name: station
+        image: weather-station:latest
+        imagePullPolicy: Never
+        env:
+        - name: BOOTSTRAP_SERVERS
+          value: "kafka-0.kafka.weather.svc.cluster.local:9092"  # Changed
+        - name: STARTUP_DELAY
+          value: "30"  # Wait for Kafka
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          echo "Waiting for Kafka..."
+          sleep $STARTUP_DELAY
+          ID=${HOSTNAME##*-}
+          export STATION_ID=$((ID + 1))
+          java -jar /app/weather-station.jar
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "400m"
+---
+# Rain Processor
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rain-processor
+  namespace: weather
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: processor
+  template:
+    metadata:
+      labels:
+        app: processor
+    spec:
+      containers:
+      - name: processor
+        image: rain-processor:latest
+        imagePullPolicy: Never
+        env:
+        - name: BOOTSTRAP_SERVERS
+          value: "kafka.weather.svc.cluster.local:9092"
