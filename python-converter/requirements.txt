@@ -1,0 +1,4 @@
+# python-converter/requirements.txt
+pandas
+pyarrow
+watchdog
