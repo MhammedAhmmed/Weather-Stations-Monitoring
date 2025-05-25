@@ -52,7 +52,7 @@ public class Main {
             byte[] valueBytes = msg.serialize();
 
             AppendEntryResponse response = segments.append(
-                    new TestKey(Integer.toString((int) msg.getStationId())), valueBytes);
+                    new TestKey(Long.toString(msg.getStationId())), valueBytes);
 
             System.out.println("Appended message key=" + i + " at offset=" + response.getOffset());
         }
