@@ -2,7 +2,10 @@ package org.example;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.Decoder;
+import org.apache.avro.io.DecoderFactory;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.parquet.avro.AvroParquetWriter;
@@ -23,7 +26,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class JsonToParquetToElasticsearch {
+public class KafkaToParquetToElasticsearch {
 
     private static final int NUM_STATIONS = 10;
     private static final int BATCH_SIZE = 10000;
@@ -65,7 +68,7 @@ public class JsonToParquetToElasticsearch {
 
         // Safety flush every 5 minutes
         ScheduledExecutorService flusher = Executors.newScheduledThreadPool(1);
-        flusher.scheduleAtFixedRate(JsonToParquetToElasticsearch::flushAllStations, 5, 5, TimeUnit.MINUTES);
+        flusher.scheduleAtFixedRate(KafkaToParquetToElasticsearch::flushAllStations, 5, 5, TimeUnit.MINUTES);
 
         // Main consumption loop
         try {
@@ -90,9 +93,12 @@ public class JsonToParquetToElasticsearch {
             flusher.shutdown();
         }
     }
-
     private static GenericRecord parseMessage(String json) {
         try {
+            // Log raw JSON input
+            System.out.println("Received raw message:");
+            System.out.println(json);
+
             String schemaJson = "{\"type\":\"record\",\"name\":\"StationReading\",\"fields\":[" +
                     "{\"name\":\"station_id\",\"type\":\"long\"}," +
                     "{\"name\":\"s_no\",\"type\":\"long\"}," +
@@ -104,13 +110,28 @@ public class JsonToParquetToElasticsearch {
                     "{\"name\":\"wind_speed\",\"type\":\"int\"}]}}]}";
 
             Schema schema = new Schema.Parser().parse(schemaJson);
-            // Implement JSON to GenericRecord conversion here
-            // For simplicity, we'll use a placeholder
-            GenericRecord record = new GenericData.Record(schema);
-            // Parse your JSON and populate the record
+
+            // Parse JSON using Avro's JSON decoder
+            Decoder decoder = DecoderFactory.get().jsonDecoder(schema, json);
+            GenericDatumReader<GenericRecord> reader = new GenericDatumReader<>(schema);
+            GenericRecord record = reader.read(null, decoder);
+
+            // Log parsed values
+            System.out.println("Successfully parsed message:");
+            System.out.println("Station ID: " + record.get("station_id"));
+            System.out.println("Sequence No: " + record.get("s_no"));
+            System.out.println("Battery Status: " + record.get("battery_status"));
+            System.out.println("Timestamp: " + record.get("status_timestamp"));
+
+            GenericRecord weather = (GenericRecord) record.get("weather");
+            System.out.println("Humidity: " + weather.get("humidity"));
+            System.out.println("Temperature: " + weather.get("temperature"));
+            System.out.println("Wind Speed: " + weather.get("wind_speed"));
+
             return record;
         } catch (Exception e) {
             System.err.println("Error parsing message: " + e.getMessage());
+            e.printStackTrace();
             return null;
         }
     }
