@@ -9,3 +9,4 @@ COPY target/Bitcask-1.0-SNAPSHOT.jar /app/app.jar
 
 # Run Java with JFR enabled
 CMD ["java", "-XX:StartFlightRecording=duration=60s,filename=recording.jfr", "-jar", "/app/app.jar"]
+

@@ -8,8 +8,8 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 # Configuration
-PARQUET_DIR = os.getenv('PARQUET_DIR', '/data/parquet')
-OUTPUT_DIR = os.getenv('OUTPUT_DIR', '/data/json')
+PARQUET_DIR = os.getenv('PARQUET_DIR', '/home/omarkhaled/omar/DDIA labs/project/Weather-Stations-Monitoring/Bitcask/data/parquet')
+OUTPUT_DIR = os.getenv('OUTPUT_DIR', '/home/omarkhaled/omar/DDIA labs/project/Weather-Stations-Monitoring/data/json')
 
 
 class ParquetHandler(FileSystemEventHandler):

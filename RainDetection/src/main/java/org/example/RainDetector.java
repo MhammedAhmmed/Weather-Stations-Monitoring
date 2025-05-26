@@ -149,7 +149,7 @@ public class RainDetector {
     }
 
     private static void createTopicsIfMissing(Properties props) {
-        props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092");
+        props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         try (AdminClient admin = AdminClient.create(props)) {
             Set<String> existingTopics = admin.listTopics().names().get();
 

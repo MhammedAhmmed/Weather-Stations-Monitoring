@@ -146,22 +146,34 @@ public class WeatherStation {
 
     public static void main(String[] args) throws InterruptedException {
 
-        long id = 1;
-        String env = System.getenv("STATION_ID");
-        if (env != null) {
-            try {
-                id = Long.parseLong(env);
-            } catch (NumberFormatException ignored) {}
-        }
+        for (int i = 0; i < 10; i++) {
+            final int index = i;
 
-        WeatherStation ws = new WeatherStation();
-        ws.initProducer();
-        ws.setStation_id(id);
+            Thread thread = new Thread(() -> {
+                long id = index + 1; // default station ID fallback
+                String env = System.getenv("STATION_ID_" + index);
+                if (env != null) {
+                    try {
+                        id = Long.parseLong(env);
+                    } catch (NumberFormatException ignored) {}
+                }
 
-        // infinite 1‑sec loop
-        while (true) {
-            ws.sendMessage();
-            Thread.sleep(1_000);
+                WeatherStation ws = new WeatherStation();
+                ws.initProducer();
+                ws.setStation_id(id);
+
+                while (true) {
+                    ws.sendMessage();
+                    try {
+                        Thread.sleep(1_000); // 1 second
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt(); // reset interrupt flag
+                        break;
+                    }
+                }
+            });
+
+            thread.start();
         }
     }
 }

@@ -1,0 +1,11 @@
+key,value
+"1","Message{stationId=1, sNo=7908, batteryStatus='medium', statusTimestamp=1748231082, weather=Weather{humidity=41, temperature=26, windSpeed=27}}"
+"2","Message{stationId=2, sNo=7908, batteryStatus='low', statusTimestamp=1748231082, weather=Weather{humidity=2, temperature=24, windSpeed=53}}"
+"3","Message{stationId=3, sNo=7908, batteryStatus='medium', statusTimestamp=1748231082, weather=Weather{humidity=62, temperature=45, windSpeed=13}}"
+"4","Message{stationId=4, sNo=7909, batteryStatus='high', statusTimestamp=1748231083, weather=Weather{humidity=98, temperature=24, windSpeed=75}}"
+"5","Message{stationId=5, sNo=7908, batteryStatus='medium', statusTimestamp=1748231082, weather=Weather{humidity=4, temperature=90, windSpeed=36}}"
+"6","Message{stationId=6, sNo=7908, batteryStatus='medium', statusTimestamp=1748231082, weather=Weather{humidity=6, temperature=86, windSpeed=93}}"
+"7","Message{stationId=7, sNo=7909, batteryStatus='high', statusTimestamp=1748231083, weather=Weather{humidity=10, temperature=25, windSpeed=69}}"
+"8","Message{stationId=8, sNo=7908, batteryStatus='low', statusTimestamp=1748231082, weather=Weather{humidity=80, temperature=105, windSpeed=84}}"
+"9","Message{stationId=9, sNo=7907, batteryStatus='medium', statusTimestamp=1748231081, weather=Weather{humidity=9, temperature=57, windSpeed=36}}"
+"10","Message{stationId=10, sNo=7903, batteryStatus='medium', statusTimestamp=1748231077, weather=Weather{humidity=42, temperature=17, windSpeed=69}}"

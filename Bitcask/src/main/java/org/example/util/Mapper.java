@@ -11,10 +11,10 @@ import java.util.stream.Collectors;
 
 public class Mapper {
     private static Message convertToMessage(GenericRecord record) {
-        long stationId = (Long) record.get("stationId");
-        long sNo = (Long) record.get("sNo");
-        String batteryStatus = record.get("batteryStatus").toString();
-        long statusTimestamp = (Long) record.get("statusTimestamp");
+        long stationId = (Long) record.get("station_id");
+        long sNo = (Long) record.get("s_no");
+        String batteryStatus = record.get("battery_status").toString();
+        long statusTimestamp = (Long) record.get("status_timestamp");
         Weather weather = convertToWeather((GenericRecord) record.get("weather"));
 
         return new Message(stationId, sNo, batteryStatus, statusTimestamp, weather);
@@ -23,7 +23,7 @@ public class Mapper {
     private static Weather convertToWeather(GenericRecord weatherRecord) {
         int humidity = (Integer) weatherRecord.get("humidity");
         int temperature = (Integer) weatherRecord.get("temperature");
-        int windSpeed = (Integer) weatherRecord.get("windSpeed");
+        int windSpeed = (Integer) weatherRecord.get("wind_speed");
 
         return new Weather(humidity, temperature, windSpeed);
     }

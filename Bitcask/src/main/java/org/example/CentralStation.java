@@ -1,19 +1,23 @@
 package org.example;
 
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.Decoder;
+import org.apache.avro.io.DecoderFactory;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
+import org.apache.parquet.io.DelegatingPositionOutputStream;
+import org.apache.parquet.io.OutputFile;
+import org.apache.parquet.io.PositionOutputStream;
 import org.example.kv.KVStore;
 import org.example.model.Key;
 import org.example.util.Mapper;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -28,10 +32,10 @@ import java.util.concurrent.atomic.AtomicLong;
 public class CentralStation {
 
     private static final int NUM_STATIONS = 10;
-    private static final int BATCH_SIZE = 10000;
+    private static final int BATCH_SIZE = 50;
     private static final AtomicLong totalMessagesReceived = new AtomicLong(0);
     private static final String TOPIC = "weather-status";
-    private static final String BOOTSTRAP_SERVERS = "kafka.weather.svc.cluster.local:9092";
+    private static final String BOOTSTRAP_SERVERS = "localhost:9092";
     private static final String GROUP_ID = "parquet-writer-group";
 
     // Map to store messages by station ID
@@ -75,6 +79,11 @@ public class CentralStation {
 
         // Initialize bitcask
         Bitcask bitcask = new Bitcask();
+        System.out.println("Reload:");
+        bitcask.printKeyDirectory();
+
+        // making a new thread that opening a socket in port 9999 and listening for the commands
+        new Thread(new QueryServer(bitcask.getKvStore(), 9999)).start();
 
         // Main consumption loop
         try {
@@ -90,6 +99,8 @@ public class CentralStation {
                         if (totalMessagesReceived.incrementAndGet() % BATCH_SIZE == 0) {
                             // Write bitcask file segments
                             bitcask.bulkStore(Mapper.convertToMessageList(stationMessages));
+                            bitcask.printSegments();
+                            bitcask.printKeyDirectory();
                             flushAllStations();
                         }
                     }
@@ -97,6 +108,7 @@ public class CentralStation {
                 consumer.commitSync();
             }
         } finally {
+            bitcask.getKvStore().sync();
             consumer.close();
             flusher.shutdown();
         }
@@ -115,9 +127,15 @@ public class CentralStation {
                     "{\"name\":\"wind_speed\",\"type\":\"int\"}]}}]}";
 
             Schema schema = new Schema.Parser().parse(schemaJson);
-            // Implement JSON to GenericRecord conversion here
-            // For simplicity, we'll use a placeholder
-            GenericRecord record = new GenericData.Record(schema);
+
+
+            // Step 4: Create a Decoder for the JSON string
+            Decoder decoder = DecoderFactory.get().jsonDecoder(schema, json);
+
+            // Step 5: Read the JSON into a GenericRecord
+            GenericDatumReader<GenericRecord> reader = new GenericDatumReader<>(schema);
+            GenericRecord record = reader.read(null, decoder);
+
             // Parse your JSON and populate the record
             return record;
         } catch (Exception e) {
@@ -143,11 +161,15 @@ public class CentralStation {
             System.out.println("Flushed all stations at " + batchTimestamp);
         }
     }
+
     private static void writeStationBatch(long stationId, List<GenericRecord> messages, long batchTimestamp)
             throws IOException {
+
         String fileName = String.format("station_%d_%d.parquet", stationId, batchTimestamp);
         File parquetFile = new File("data/parquet", fileName);
+        parquetFile.getParentFile().mkdirs(); // Ensure directory exists
 
+        // Schema
         String schemaJson = "{\"type\":\"record\",\"name\":\"StationReading\",\"fields\":[" +
                 "{\"name\":\"station_id\",\"type\":\"long\"}," +
                 "{\"name\":\"s_no\",\"type\":\"long\"}," +
@@ -157,11 +179,51 @@ public class CentralStation {
                 "{\"name\":\"humidity\",\"type\":\"int\"}," +
                 "{\"name\":\"temperature\",\"type\":\"int\"}," +
                 "{\"name\":\"wind_speed\",\"type\":\"int\"}]}}]}";
-
         Schema schema = new Schema.Parser().parse(schemaJson);
 
-        try (ParquetWriter<GenericRecord> writer = AvroParquetWriter.<GenericRecord>builder(
-                        new org.apache.hadoop.fs.Path(parquetFile.getAbsolutePath()))
+        // Use local file system, avoid Hadoop FS
+        OutputFile localOutputFile = new OutputFile() {
+            @Override
+            public PositionOutputStream create(long blockSizeHint) throws IOException {
+                return new DelegatingPositionOutputStream(new FileOutputStream(parquetFile)) {
+                    private long position = 0;
+
+                    @Override
+                    public void write(int b) throws IOException {
+                        super.write(b);
+                        position++;
+                    }
+
+                    @Override
+                    public void write(byte[] b, int off, int len) throws IOException {
+                        super.write(b, off, len);
+                        position += len;
+                    }
+
+                    @Override
+                    public long getPos() throws IOException {
+                        return position;
+                    }
+                };
+            }
+
+            @Override
+            public PositionOutputStream createOrOverwrite(long blockSizeHint) throws IOException {
+                return create(blockSizeHint);
+            }
+
+            @Override
+            public boolean supportsBlockSize() {
+                return false;
+            }
+
+            @Override
+            public long defaultBlockSize() {
+                return 0;
+            }
+        };
+
+        try (ParquetWriter<GenericRecord> writer = AvroParquetWriter.<GenericRecord>builder(localOutputFile)
                 .withSchema(schema)
                 .withCompressionCodec(CompressionCodecName.SNAPPY)
                 .build()) {
@@ -169,6 +231,7 @@ public class CentralStation {
             for (GenericRecord message : messages) {
                 writer.write(message);
             }
+
             System.out.printf("Written %,d messages for station %d to %s%n",
                     messages.size(), stationId, fileName);
         }

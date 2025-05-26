@@ -184,6 +184,8 @@ public class KVStore <K extends BitCaskKey> {
 //            System.out.println("FileIds to remove in KVStore: " + Arrays.toString(fileIds));
 
             this.segments.remove(fileIds);
+
+            System.out.println("Merged files");
         } finally {
             this.lock.writeLock().unlock();
         }

@@ -171,7 +171,7 @@ public class Store {
 //        System.out.println("FilePath to delete from store: " + file.getPath());
 
         if (file.delete()) {
-            System.out.println("File deleted successfully.");
+            System.out.println("File deleted successfully." + file.getName());
         } else {
             System.out.println("Failed to delete the file.");
         }
