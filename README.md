@@ -12,7 +12,7 @@ University, Faculty of Engineering, Computers & Systems Engineering Department.
 
 ---
 
-## 📐 Architecture
+## Architecture
 
 ```
 Data Acquisition          Data Processing & Archiving        Indexing
